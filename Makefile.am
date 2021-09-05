@@ -317,6 +317,10 @@ endif # SERVER
 
 endif # SIEVE
 
+if HAVE_LUA
+sbin_PROGRAMS += imap/cyr_lua
+endif
+
 EXTRA_DIST = \
 	COPYING \
 	README.md \
@@ -910,6 +914,12 @@ imap_cyr_df_LDADD = $(LD_UTILITY_ADD)
 
 imap_cyr_ls_SOURCES = imap/cli_fatal.c imap/cyr_ls.c imap/mutex_fake.c
 imap_cyr_ls_LDADD = $(LD_UTILITY_ADD)
+
+if HAVE_LUA
+imap_cyr_lua_SOURCES = imap/cli_fatal.c imap/cyr_lua.c imap/mutex_fake.c
+imap_cyr_lua_CFLAGS = $(AM_CFLAGS) $(LUA_CFLAGS) $(CFLAG_VISIBILITY)
+imap_cyr_lua_LDADD = $(LD_UTILITY_ADD) $(LUA_LIBS)
+endif
 
 imap_cyr_pwd_SOURCES = imap/cli_fatal.c imap/cyr_pwd.c imap/mutex_fake.c
 imap_cyr_pwd_LDADD = $(LD_UTILITY_ADD)
