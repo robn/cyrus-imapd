@@ -53,6 +53,10 @@
 
 #include "global.h"
 
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+
 int main(int argc, char *argv[])
 {
     int opt;
@@ -76,7 +80,21 @@ int main(int argc, char *argv[])
 
     cyrus_init(alt_config, "cyr_lua", 0, 0);
 
-    /* nothing happens */
+    lua_State *L = luaL_newstate();
+    luaL_openlibs(L);
+
+    if (luaL_loadfile(L, luafile)) {
+        fprintf(stderr, "%s\n", lua_tostring(L, -1));
+        exit(EX_DATAERR);
+    }
+
+    if (lua_pcall(L, 0, 0, 0)) {
+        fprintf(stderr, "%s\n", lua_tostring(L, -1));
+        /* XXX clean shutdown? */
+        exit(EX_DATAERR);
+    }
+
+    lua_close(L);
 
     cyrus_done();
 
