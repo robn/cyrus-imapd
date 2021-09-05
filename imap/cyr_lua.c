@@ -61,29 +61,43 @@ int main(int argc, char *argv[])
 {
     int opt;
     char *alt_config = NULL;
+    char *program_text = NULL;
     const char *luafile;
 
-    while ((opt = getopt(argc, argv, "C:")) != EOF) {
+    while ((opt = getopt(argc, argv, "C:e:")) != EOF) {
         switch (opt) {
         case 'C': /* alt config file */
             alt_config = optarg;
             break;
+
+        case 'e': /* program text direct on command line */
+            program_text = optarg;
+            break;
         }
     }
 
-    if ((argc - optind) < 1) {
+    if ((argc - optind) < 1 && !program_text) {
         fprintf(stderr, "Usage: %s [-C altconfig] <program.lua>\n", argv[0]);
+        fprintf(stderr, "       %s [-C altconfig] -e 'program text'\n", argv[0]);
         exit(EX_USAGE);
     }
 
-    luafile = argv[optind];
+    if (!program_text)
+        luafile = argv[optind];
 
     cyrus_init(alt_config, "cyr_lua", 0, 0);
 
     lua_State *L = luaL_newstate();
     luaL_openlibs(L);
 
-    if (luaL_loadfile(L, luafile)) {
+    if (program_text) {
+        if (luaL_loadbuffer(L, program_text, strlen(program_text), "-e")) {
+            fprintf(stderr, "%s\n", lua_tostring(L, -1));
+            exit(EX_DATAERR);
+        }
+    }
+
+    else if (luaL_loadfile(L, luafile)) {
         fprintf(stderr, "%s\n", lua_tostring(L, -1));
         exit(EX_DATAERR);
     }
