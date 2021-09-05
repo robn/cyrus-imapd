@@ -236,6 +236,11 @@ static json_t *buildinfo()
 #else
     json_object_set_new(dependency, "cld2", json_false());
 #endif
+#ifdef HAVE_LUA
+    json_object_set_new(dependency, "lua", json_true());
+#else
+    json_object_set_new(dependency, "lua", json_false());
+#endif
 
     /* Enabled databases */
 #ifdef HAVE_MYSQL
