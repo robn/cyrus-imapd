@@ -1479,6 +1479,22 @@ AC_SUBST([ICU_LIBS])
 AC_SUBST([ICU_CFLAGS])
 
 dnl
+dnl Check for Lua
+dnl
+AC_ARG_WITH([lua],
+	[AS_HELP_STRING([--without-lua], [ignore presence of Lua library and disable it])],
+    [],
+    [with_lua=yes])
+AS_IF([test "x$with_lua" = "xyes"],
+	[ PKG_CHECK_MODULES([LUA], [lua51],
+		[ AC_DEFINE(HAVE_LUA, [], [Build with Lua support])
+		  with_lua=yes ],
+          with_lua=no)])
+AC_SUBST([LUA_LIBS])
+AC_SUBST([LUA_CFLAGS])
+AM_CONDITIONAL([HAVE_LUA], [test "x$with_lua" = xyes])
+
+dnl
 dnl Check for zeroskip library, needed for zeroskip support
 dnl
 AC_ARG_WITH([zeroskip],
@@ -2485,6 +2501,7 @@ External dependencies:
    icu4c:              $with_icu4c
    chardet:            $with_chardet
    cld2:               $with_cld2
+   lua51:              $with_lua
 
 Database support:
    mysql:              $with_mysql
