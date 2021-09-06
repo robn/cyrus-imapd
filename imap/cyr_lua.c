@@ -57,7 +57,140 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-int main(int argc, char *argv[])
+
+static int l_db_close (lua_State *L)
+{
+    struct db *db = luaL_checkudata(L, 1, "cyrus.db");
+
+    cyrusdb_close(db);
+
+    return 0;
+}
+
+static int l_db_open (lua_State *L) {
+    const char *filename = luaL_checkstring(L, 1);
+    const char *backend =  luaL_checkstring(L, 2);
+
+    static struct db *db;
+
+    int r = cyrusdb_open(backend, filename, 0, &db);
+    if(r != CYRUSDB_OK) {
+        // XXX return something that makes sense
+        return 0;
+    }
+
+    lua_pushlightuserdata(L, db);
+
+    if (luaL_newmetatable(L, "cyrus.db")) {
+        lua_getglobal(L, "cyrus");
+        lua_getfield(L, -1, "db");
+        lua_setfield(L, -3, "__index");
+        lua_pop(L, 1);
+
+        lua_pushcfunction(L, l_db_close);
+        lua_setfield(L, -2, "__gc");
+    }
+
+    lua_setmetatable(L, -2);
+
+    return 1;
+}
+
+static int l_db_fetch (lua_State *L)
+{
+    struct db *db = luaL_checkudata(L, 1, "cyrus.db");
+    const char *key = luaL_checkstring(L, 2);
+
+    const char *res;
+    size_t reslen;
+
+    int r = cyrusdb_fetch(db, key, strlen(key), &res, &reslen, NULL);
+    if (r == CYRUSDB_NOTFOUND)
+      return 0;
+
+    // XXX error checks
+
+    lua_pushlstring(L, res, reslen);
+    return 1;
+}
+
+static int l_db_store (lua_State *L)
+{
+    struct db *db = luaL_checkudata(L, 1, "cyrus.db");
+    const char *key = luaL_checkstring(L, 2);
+    const char *val = luaL_checkstring(L, 3);
+
+    int r = cyrusdb_store(db, key, strlen(key), val, strlen(val), NULL);
+
+    // XXX error checks
+
+    return 0;
+}
+
+static int l_db_delete (lua_State *L)
+{
+    struct db *db = luaL_checkudata(L, 1, "cyrus.db");
+    const char *key = luaL_checkstring(L, 2);
+
+    int r = cyrusdb_delete(db, key, strlen(key), NULL, 1);
+
+    // XXX error checks
+
+    return 0;
+}
+
+static int l_db_pairs_next (lua_State *L) {
+    struct db *db = lua_touserdata(L, lua_upvalueindex(1));
+    const char *key = lua_tostring(L, lua_upvalueindex(2));
+    size_t keylen = key ? strlen(key) : 0;
+    const char *val;
+    size_t vallen;
+
+    int r = cyrusdb_fetchnext(db, key, keylen, &key, &keylen, &val, &vallen, NULL);
+    /* XXX error checks */
+
+    if (r == CYRUSDB_NOTFOUND) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    lua_pushlstring(L, key, keylen);
+    lua_pushvalue(L, -1);
+
+    lua_replace(L, lua_upvalueindex(2));
+
+    lua_pushlstring(L, val, vallen);
+
+    return 2;
+}
+
+static int l_db_pairs (lua_State *L) {
+    struct db *db = luaL_checkudata(L, 1, "cyrus.db");
+
+    lua_pushlightuserdata(L, db);
+    lua_pushnil(L);
+    lua_pushcclosure(L, l_db_pairs_next, 3);
+
+    return 1;
+}
+
+static void l_db_register (lua_State *L) {
+    static const struct luaL_Reg cyrusdb_lib[] = {
+        { "open",   l_db_open   },
+        { "close",  l_db_close  },
+        { "fetch",  l_db_fetch  },
+        { "store",  l_db_store  },
+        { "delete", l_db_delete },
+        { "pairs",  l_db_pairs  },
+        { NULL, NULL }
+    };
+
+    lua_newtable(L);
+    luaL_register(L, NULL, cyrusdb_lib);
+    lua_setfield(L, -2, "db");
+}
+
+int main (int argc, char *argv[])
 {
     int opt;
     char *alt_config = NULL;
@@ -89,6 +222,10 @@ int main(int argc, char *argv[])
 
     lua_State *L = luaL_newstate();
     luaL_openlibs(L);
+
+    lua_newtable(L);
+    l_db_register(L);
+    lua_setglobal(L, "cyrus");
 
     if (program_text) {
         if (luaL_loadbuffer(L, program_text, strlen(program_text), "-e")) {
