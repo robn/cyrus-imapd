@@ -1,4 +1,4 @@
-/* cyr_lua.c -- run a Lua program inside Cyrus
+/* lua_init.c -- Setup functions for Lua bindings
  *
  * Copyright (c) 1994-2021 Carnegie Mellon University.  All rights reserved.
  *
@@ -42,74 +42,15 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <sysexits.h>
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/uio.h>
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
 
-#include "global.h"
+void l_cyrusdb_register (lua_State *L);
 
-#include "lua/cyrus_lua.h"
-
-int main (int argc, char *argv[])
+EXPORTED void cyrus_lua_openlibs (lua_State *L)
 {
-    int opt;
-    char *alt_config = NULL;
-    char *program_text = NULL;
-    const char *luafile;
-
-    while ((opt = getopt(argc, argv, "C:e:")) != EOF) {
-        switch (opt) {
-        case 'C': /* alt config file */
-            alt_config = optarg;
-            break;
-
-        case 'e': /* program text direct on command line */
-            program_text = optarg;
-            break;
-        }
-    }
-
-    if ((argc - optind) < 1 && !program_text) {
-        fprintf(stderr, "Usage: %s [-C altconfig] <program.lua>\n", argv[0]);
-        fprintf(stderr, "       %s [-C altconfig] -e 'program text'\n", argv[0]);
-        exit(EX_USAGE);
-    }
-
-    if (!program_text)
-        luafile = argv[optind];
-
-    cyrus_init(alt_config, "cyr_lua", 0, 0);
-
-    lua_State *L = luaL_newstate();
-    luaL_openlibs(L);
-    cyrus_lua_openlibs(L);
-
-    if (program_text) {
-        if (luaL_loadbuffer(L, program_text, strlen(program_text), "-e")) {
-            fprintf(stderr, "%s\n", lua_tostring(L, -1));
-            exit(EX_DATAERR);
-        }
-    }
-
-    else if (luaL_loadfile(L, luafile)) {
-        fprintf(stderr, "%s\n", lua_tostring(L, -1));
-        exit(EX_DATAERR);
-    }
-
-    if (lua_pcall(L, 0, 0, 0)) {
-        fprintf(stderr, "%s\n", lua_tostring(L, -1));
-        /* XXX clean shutdown? */
-        exit(EX_DATAERR);
-    }
-
-    lua_close(L);
-
-    cyrus_done();
-
-    return 0;
+    lua_newtable(L);
+    l_cyrusdb_register(L);
+    lua_setglobal(L, "cyrus");
 }

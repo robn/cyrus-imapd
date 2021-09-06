@@ -318,6 +318,8 @@ endif # SERVER
 endif # SIEVE
 
 if HAVE_LUA
+noinst_LTLIBRARIES += lua/libcyrus_lua.la
+noinst_HEADERS += lua/cyrus_lua.h
 sbin_PROGRAMS += imap/cyr_lua
 endif
 
@@ -876,6 +878,17 @@ backup_restore_SOURCES = \
     backup/restore.c
 backup_restore_LDADD = backup/libcyrus_backup.la $(LD_SIEVE_ADD) $(LD_UTILITY_ADD)
 
+if HAVE_LUA
+lua_libcyrus_lua_la_SOURCES = \
+	lua/lua_init.c \
+	lua/lua_cyrusdb.c
+lua_libcyrus_lua_la_CFLAGS = $(AM_CFLAGS) $(LUA_CFLAGS) $(CFLAG_VISIBILITY)
+
+imap_cyr_lua_SOURCES = imap/cli_fatal.c imap/cyr_lua.c imap/mutex_fake.c
+imap_cyr_lua_CFLAGS = $(AM_CFLAGS) $(LUA_CFLAGS) $(CFLAG_VISIBILITY)
+imap_cyr_lua_LDADD = lua/libcyrus_lua.la $(LD_UTILITY_ADD) $(LUA_LIBS)
+endif
+
 imap_arbitron_SOURCES = imap/arbitron.c imap/cli_fatal.c imap/mutex_fake.c
 imap_arbitron_LDADD = $(LD_UTILITY_ADD)
 
@@ -914,12 +927,6 @@ imap_cyr_df_LDADD = $(LD_UTILITY_ADD)
 
 imap_cyr_ls_SOURCES = imap/cli_fatal.c imap/cyr_ls.c imap/mutex_fake.c
 imap_cyr_ls_LDADD = $(LD_UTILITY_ADD)
-
-if HAVE_LUA
-imap_cyr_lua_SOURCES = imap/cli_fatal.c imap/cyr_lua.c imap/mutex_fake.c
-imap_cyr_lua_CFLAGS = $(AM_CFLAGS) $(LUA_CFLAGS) $(CFLAG_VISIBILITY)
-imap_cyr_lua_LDADD = $(LD_UTILITY_ADD) $(LUA_LIBS)
-endif
 
 imap_cyr_pwd_SOURCES = imap/cli_fatal.c imap/cyr_pwd.c imap/mutex_fake.c
 imap_cyr_pwd_LDADD = $(LD_UTILITY_ADD)
