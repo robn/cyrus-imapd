@@ -47,10 +47,14 @@
 #include "lualib.h"
 
 void l_cyrusdb_register (lua_State *L);
+void l_mbname_register (lua_State *L);
 
 EXPORTED void cyrus_lua_openlibs (lua_State *L)
 {
     lua_newtable(L);
+
     l_cyrusdb_register(L);
+    l_mbname_register(L);
+
     lua_setglobal(L, "cyrus");
 }

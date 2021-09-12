@@ -881,7 +881,8 @@ backup_restore_LDADD = backup/libcyrus_backup.la $(LD_SIEVE_ADD) $(LD_UTILITY_AD
 if HAVE_LUA
 lua_libcyrus_lua_la_SOURCES = \
 	lua/lua_init.c \
-	lua/lua_cyrusdb.c
+	lua/lua_cyrusdb.c \
+	lua/lua_mbname.c
 lua_libcyrus_lua_la_CFLAGS = $(AM_CFLAGS) $(LUA_CFLAGS) $(CFLAG_VISIBILITY)
 
 imap_cyr_lua_SOURCES = imap/cli_fatal.c imap/cyr_lua.c imap/mutex_fake.c
